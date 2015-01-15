@@ -11,7 +11,7 @@
 	</Camera>
 	<ProjectorWindow>
 		<Position>
-			<x>300</x>
+			<x>1324</x>
 			<y>-20</y>
 		</Position>
 	</ProjectorWindow>
@@ -22,4 +22,8 @@
 		<blackThreshold>40</blackThreshold>
 		<whiteThreshold>5</whiteThreshold>
 	</Reconstruction>
+	<Export>
+		<Obj>1</Obj>
+		<Ply>1</Ply>
+	</Export>
 </opencv_storage>

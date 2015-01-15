@@ -58,7 +58,8 @@ void VirtualCamera::loadTranslationVector(std::string path)
 	loadMatrix(translationVector,3,1,path);
 }
 
-int VirtualCamera::loadMatrix(cv::Mat &matrix,int rows,int cols ,std::string file){
+int VirtualCamera::loadMatrix(cv::Mat &matrix,int rows,int cols ,std::string file)
+{
 
 	std:: ifstream in1; 
 	in1.open(file.c_str());

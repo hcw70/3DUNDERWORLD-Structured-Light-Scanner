@@ -19,7 +19,8 @@ public:
 
 	MeshCreator(PointCloudImage *in);
 	~MeshCreator(void);
-	void computeMesh(std::string path);
+	void exportObjMesh(std::string path);
+	void exportPlyMesh(std::string path);
 
 private:
 

@@ -206,6 +206,11 @@ void Reconstructor::loadCamImgs( std::string folder,std::string prefix,std::stri
 				cv::imwrite(p.str().c_str(),tmp);
 			}
 		}
+		
+		if(i==0)
+		{
+			color = tmp;
+		}
 		cv::cvtColor(tmp, tmp, CV_BGR2GRAY);
 
 		camImgs.push_back(tmp);
@@ -233,6 +238,8 @@ void Reconstructor::unloadCamImgs()
 		}
 	}
 	
+	color.release();
+
 	camImgs.clear();	
 }
 
@@ -310,6 +317,9 @@ void Reconstructor::runReconstruction()
 		camPixels = camsPixels[i];
 
 		loadCamImgs(camFolder[i],imgPrefix[i],imgSuffix[i]);
+
+		colorImgs.push_back(cv::Mat());
+		colorImgs[i] = color;
 		computeShadows();
 		decodePaterns();
 
@@ -317,12 +327,12 @@ void Reconstructor::runReconstruction()
 	}
 	
 	//reconstruct 
-	points3DProjView = new PointCloudImage( proj_w, proj_h , false );
+	points3DProjView = new PointCloudImage( proj_w, proj_h , true );
 	
 	for(int i = 0; i < numOfCams; i++)
 	{
 		for(int j=i+1; j< numOfCams; j++)
-			triangulation(camsPixels[i],cameras[i],camsPixels[j],cameras[j]);
+			triangulation(camsPixels[i],cameras[i],camsPixels[j],cameras[j],i,j);
 	}
 
 }
@@ -424,7 +434,7 @@ void Reconstructor::setImgPath(const char folder[],const char prefix[],const cha
 }
 
 
-void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCamera camera1, cv::vector<cv::Point> *cam2Pixels, VirtualCamera camera2)
+void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCamera camera1, cv::vector<cv::Point> *cam2Pixels, VirtualCamera camera2, int cam1index, int cam2index)
 {
 	int w = proj_w;
 	int h = proj_h;
@@ -454,7 +464,7 @@ void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCame
 			if( cam1Pixs.size() == 0 || cam2Pixs.size() == 0)
 				continue;
 
-			
+			cv::Vec3f color1,color2;
 
 			for(int c1=0; c1 < cam1Pixs.size(); c1++)
 			{
@@ -465,6 +475,9 @@ void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCame
 
 				cv::Vec3f ray1Vector = (cv::Vec3f) (camera1.position - cam1Point); //compute ray vector 
 				Utilities::normalize(ray1Vector);
+
+				//get pixel color for the first camera view
+				color1 = Utilities::matGet3D( colorImgs[cam1index], cam1Pixs[c1].x, cam1Pixs[c1].y);
 
 				for(int c2=0; c2 < cam2Pixs.size(); c2++)
 				{
@@ -481,12 +494,14 @@ void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCame
 					
 					bool ok = Utilities::line_lineIntersection(camera1.position,ray1Vector,camera2.position,ray2Vector,interPoint);
 
+
 					if(!ok)
 						continue;
-
 					
+					//get pixel color for the second camera view
+					color2 = Utilities::matGet3D( colorImgs[cam2index], cam2Pixs[c2].x, cam2Pixs[c2].y);
 
-					points3DProjView->addPoint(i,j,interPoint);	
+					points3DProjView->addPoint(i,j,interPoint, (color1 + color2)/2);	
 					
 
 				}

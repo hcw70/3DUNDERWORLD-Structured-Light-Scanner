@@ -77,7 +77,7 @@ class Reconstructor
 
 		void decodePaterns();
 
-		void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCamera cameras1, cv::vector<cv::Point> *cam2Pixels, VirtualCamera cameras2);
+		void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCamera cameras1, cv::vector<cv::Point> *cam2Pixels, VirtualCamera cameras2, int cam1index, int cam2index);
 		
 		std::string *camFolder;
 		std::string *imgPrefix;
@@ -91,6 +91,9 @@ class Reconstructor
 		int whiteThreshold;
 
 		cv::vector<cv::Mat> camImgs;
+		cv::vector<cv::Mat> colorImgs;
+
+		cv::Mat color;
 
 		cv::Mat mask;					//matrix with vals 0 and 1 , CV_8U , uchar
 

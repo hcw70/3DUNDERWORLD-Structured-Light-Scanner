@@ -35,6 +35,9 @@ int cam_w;
 int cam_h;
 cv::Point2i projectorWinPos;
 
+bool exportPly;
+bool exportObj;
+
 
 void projectGraysOnly()
 {
@@ -164,6 +167,8 @@ void createConfigurationFile(char* path)
 	autoContrast = true;
 	saveAutoContrast = false;
 	raySampling = true;
+	exportObj = false;
+	exportPly = true;
 
 	cv::FileStorage fs(path, cv::FileStorage::WRITE);
 
@@ -187,6 +192,10 @@ void createConfigurationFile(char* path)
 		fs<<"RaySampling"<<raySampling;
 		fs<<"blackThreshold"<<black_threshold;
 		fs<<"whiteThreshold"<<white_threshold;
+	fs<<"}";
+	fs << "Export" << "{:";
+		fs<<"Obj"<<exportObj;
+		fs<<"Ply"<<exportPly;
 	fs<<"}";
 
 	fs.release();
@@ -225,6 +234,9 @@ bool loadConfigurations()
 		node["SaveAutoContrastImages"] >> saveAutoContrast;
 		node["RaySampling"] >> raySampling;
 	
+	node = fs["Export"];
+		node["Obj"]>>exportObj;
+		node["Ply"]>>exportPly;
 
 	fs.release();
 
@@ -324,7 +336,11 @@ void reconstruct()
 	//Export mesh
 	MeshCreator *meshCreator=new MeshCreator(reconstructor->points3DProjView);
 
-	meshCreator->computeMesh("output/projector_view.obj");
+	if(exportObj)
+		meshCreator->exportObjMesh("output/projector_view.obj");
+
+	if(exportPly || !(exportObj || exportPly))
+		meshCreator->exportPlyMesh("output/projector_view.ply");
 
 	delete meshCreator;
 	delete reconstructor;

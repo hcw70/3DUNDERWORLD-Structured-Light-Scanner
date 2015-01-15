@@ -22,7 +22,7 @@ PointCloudImage::PointCloudImage(int imageW,int imageH, bool colorFlag)
 
 	if(colorFlag==true)
 	{
-		color = cv::Mat(h,w,CV_8UC3);
+		color = cv::Mat(h,w,CV_32FC3,cv::Scalar(0));
 	}
 	else
 		color = NULL;
@@ -124,6 +124,7 @@ bool PointCloudImage::addPoint(int i_w, int j_h, cv::Point3f point, cv::Vec3f co
 	if(!color.empty())
 	{
 		cv::Vec3f c = Utilities::matGet3D(color,i_w,j_h);
+
 		Utilities::matSet3D(color,i_w,j_h,colorBGR + c);
 	}
 	else
