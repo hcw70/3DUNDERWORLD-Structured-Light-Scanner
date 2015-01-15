@@ -34,9 +34,9 @@ void Utilities::normalize(cv::Vec3f &vec)
 {
 	double mag = sqrt( vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
 	
-	vec[0] /= (float) std::max(0.000001, mag);
-	vec[1] /= (float) std::max(0.000001, mag);
-	vec[2] /= (float) std::max(0.000001, mag);
+	vec[0] /= (float) max(0.000001, mag);
+	vec[1] /= (float) max(0.000001, mag);
+	vec[2] /= (float) max(0.000001, mag);
 	
 	return;
 }
@@ -45,9 +45,9 @@ void Utilities::normalize3dtable(double vec[3])
 {
 	double mag = sqrt( vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
 	
-	vec[0] /= std::max(0.000001, mag);
-	vec[1] /= std::max(0.000001, mag);
-	vec[2] /= std::max(0.000001, mag);
+	vec[0] /= max(0.000001, mag);
+	vec[1] /= max(0.000001, mag);
+	vec[2] /= max(0.000001, mag);
 }
 
 //convert image pixel to image 3d space point
@@ -114,7 +114,7 @@ cv::Point2f Utilities::undistortPoints( cv::Point2f p,  VirtualCamera cam)
 		y = (y0 - deltaY)*icdist;
 	}
 	
-	return cv::Point2f((x*fx)+cx,(y*fy)+cy);
+	return cv::Point2f((float)(x*fx)+cx,(float)(y*fy)+cy);
 }
 
 //calculate the intersection point of a ray and a plane, given the normal and a point of the plane, and a point and the vector of the ray
@@ -179,7 +179,7 @@ double Utilities::matGet2D(cv::Mat m, int x, int y)
 			return m.at<double>(y,x);
 			break;
 	}
-
+	
 }
 
 double Utilities::matGet3D(cv::Mat m, int x, int y, int i)
@@ -407,7 +407,7 @@ void Utilities::autoContrast(IplImage *img_in, IplImage *img_out)
 	
 }
 
-void Utilities::exportMat(char *path, cv::Mat m)
+void Utilities::exportMat(const char *path, cv::Mat m)
 {
 
 	std:: ofstream out; 
@@ -424,13 +424,12 @@ void Utilities::exportMat(char *path, cv::Mat m)
 		}
 		out<<"\n";
 	}
-
+	out.close();
 }
 
-void Utilities::line_lineIntersection(cv::Point3f p1, cv::Vec3f v1, cv::Point3f p2,cv::Vec3f v2,cv::Point3f &p)
+bool Utilities::line_lineIntersection(cv::Point3f p1, cv::Vec3f v1, cv::Point3f p2,cv::Vec3f v2,cv::Point3f &p)
 {
 	
-
 	cv::Vec3f v12;
 	v12 = p1 - p2;
 
@@ -443,15 +442,20 @@ void Utilities::line_lineIntersection(cv::Point3f p1, cv::Vec3f v1, cv::Point3f 
 
 	float s, t, denom;
 
+	
 	denom = v1_dot_v1 * v2_dot_v2 - v1_dot_v2 * v1_dot_v2;
+
+	if(abs(denom)<0.1)
+		return false;
 
 	s =  (v1_dot_v2/denom) * v12_dot_v2 - (v2_dot_v2/denom) * v12_dot_v1;
 	t = -(v1_dot_v2/denom) * v12_dot_v1 + (v1_dot_v1/denom) * v12_dot_v2;
 
-
-
 	p = (p1 + s*(cv::Point3f)v1 ) + (p2 + t*(cv::Point3f) v2);
+	
+	p = 0.5*p;
 
+	return true;
 }
 
 int Utilities::accessMat(cv::Mat m, int x, int y, int i)
@@ -466,4 +470,43 @@ int Utilities::accessMat(cv::Mat m, int x, int y)
 	
 	return y*m.cols*m.channels() + x*m.channels();
 
+}
+
+
+void Utilities::folderScan(const char *path)
+{	
+
+	_chdir(path);
+
+	WIN32_FIND_DATA data;
+	HANDLE h;
+
+	h = FindFirstFile( L"*.*", &data);
+
+	if( h!=INVALID_HANDLE_VALUE ) 
+	{
+		int numOfFiles=0;
+
+		do
+		{
+			char*  nPtr = new char [lstrlen( data.cFileName ) + 1];
+
+			for( int i = 0; i < lstrlen( data.cFileName ); i++ )
+				nPtr[i] = char( data.cFileName[i] );
+
+			nPtr[lstrlen( data.cFileName )] = '\0';
+
+			std::cout<<nPtr<<"\n";
+
+		} 
+		while(FindNextFile(h,&data));
+
+	}
+
+
+	for(int i=0; path[i]!=NULL; i++)
+	{
+		if(path[i] == '/')
+			_chdir("../");
+	}
 }

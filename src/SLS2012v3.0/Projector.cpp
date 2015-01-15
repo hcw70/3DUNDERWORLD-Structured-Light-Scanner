@@ -40,6 +40,11 @@ void Projector::showImg(IplImage* img)
 	cvShowImage("Projector Window", img );
 }
 
+void Projector::showImg(cv::Mat img)
+{
+	cv::imshow("Projector Window", img );
+}
+
 Projector::~Projector(void)
 {
 	cvDestroyWindow("Projector Window");

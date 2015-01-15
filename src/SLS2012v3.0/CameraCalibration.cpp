@@ -9,32 +9,26 @@
 //------------------------------------------------------------------------------------------------------------
 
 #include "StdAfx.h"
-#include "CamProjCalib.h"
+#include "CameraCalibration.h"
 
-CamProjCalib::CamProjCalib(void)
+CameraCalibration::CameraCalibration(void)
 {
 	squareSize.width = 0;
 	squareSize.height = 0;
-
 	numOfCamImgs = 0;
-	numOfProjImgs = 0;
-
 	camCalibrated = false;
-	projCalibrated = false;
 
 }
 
-CamProjCalib::~CamProjCalib(void)
+CameraCalibration::~CameraCalibration(void)
 {
 	unloadCameraImgs();
-	unloadProjectedCalibImg();
-	unloadProjectorImgs();
 }
 
 //----------------------------------------Load & Export Data-------------------------------------- 
 
 
-void CamProjCalib::loadCalibData(char *path)
+void CameraCalibration::loadCalibData(const char *path)
 {
 	cv::FileStorage fs(path, cv::FileStorage::READ);
 	
@@ -47,18 +41,11 @@ void CamProjCalib::loadCalibData(char *path)
 	cv::FileNode node = fs["Camera"];
 		node["Calibrated"] >> camCalibrated;
 		node["Matrix"] >> camMatrix;
-		node["Distortion"]>> camDist;
+		node["Distortion"]>> distortion;
+		node["Rotation"]>> rotationMatrix;
+		node["Translation"] >> translationVector;
 		node["Height"] >> camImageSize.height;
 		node["Width"] >> camImageSize.width;
-
-	node = fs["Projector"];
-		node["Calibrated"] >> projCalibrated;
-		node["Matrix"] >> projMatrix;
-		node["Distortion"] >> projDist;
-		node["Rotation"] >> projRotationMatrix;
-		node["Translation"] >> projTranslationVector;
-		node["Height"] >> projImageSize.height;
-		node["Width"] >> projImageSize.width;
 
 	node = fs["BoardSquare"];
 	
@@ -89,51 +76,17 @@ void CamProjCalib::loadCalibData(char *path)
 
 				}
 	
-		images = features["ProjectedCalibrationImage"];
-
-			images["Corners"] >> projectedCalibImgCorners; 
-	
-		images = features["ProjectorImages"];
-			size = images["NumberOfImgs"];
-
-				for(int i=0; i<size; i++)
-				{
-					std::stringstream name;
-					name << "Image" << i+1;
-
-					cv::FileNode image = images[name.str()];
-					
-					cv::vector<cv::Point2f> in2;
-					
-
-					image["ProjectedPaternCorners"]>>in2;
-					imgPaternCornersProj.push_back(in2);
-
-					image["BoardCorners"]>>in2;
-					imgBoardCornersProj.push_back(in2);
-
-					image["ObjBoardCorners"]>>in2;
-					objBoardCornersProj.push_back(in2);
-
-				}
-
 	fs.release();
 }
 
 
-void CamProjCalib::saveCalibData(char *path)
+void CameraCalibration::saveCalibData(const char *path)
 {
 	cv::FileStorage fs(path, cv::FileStorage::WRITE);
 	
 	fs << "Camera" << "{:";
-		fs<< "Calibrated" << camCalibrated << "Matrix" << camMatrix << "Distortion" << camDist;
+	fs<< "Calibrated" << camCalibrated << "Matrix" << camMatrix << "Distortion" << distortion<<"Translation"<<translationVector<<"Rotation"<<rotationMatrix;
 		fs<<"Height" << camImageSize.height<<"Width" << camImageSize.width;
-	fs<<"}";
-
-	fs << "Projector" << "{:";
-		fs << "Calibrated" << projCalibrated<< "Matrix" << projMatrix << "Distortion" << projDist << "Rotation" 
-			<< projRotationMatrix << "Translation" << projTranslationVector;
-		fs<<"Height" << projImageSize.height<<"Width" << projImageSize.width;
 	fs<<"}";
 	
 	
@@ -161,62 +114,41 @@ void CamProjCalib::saveCalibData(char *path)
 					fs<<"}";
 
 				}
-	
 		fs<<"}";
-
-		fs << "ProjectedCalibrationImage" << "{:";
-
-			fs << "Corners" << projectedCalibImgCorners; 
-	
-		fs<<"}";
-
-		fs << "ProjectorImages" << "{:";
-
-			size = imgPaternCornersProj.size();
-			fs << "NumberOfImgs" << size;
-
-				for(int i=0; i<imgPaternCornersProj.size(); i++)
-				{
-
-					std::stringstream name;
-					name << "Image" << i+1;
-					fs<<name.str()<< "{:";
-
-						fs<<"ProjectedPaternCorners"<<imgPaternCornersProj[i];
-						fs<<"BoardCorners"<<imgBoardCornersProj[i];
-						fs<<"ObjBoardCorners"<<objBoardCornersProj[i];
-
-					fs<<"}";
-
-				}
-	
-		fs<<"}";
-
-		
-	
 	fs<<"}";
 
 	fs.release();
 }
 
-void CamProjCalib::exportTxtFiles()
+
+
+void CameraCalibration::exportTxtFiles(const char *path, int CAMCALIB_OUT_PARAM)
 {
-	_chdir("output/");
+	cv::Mat out;
+	switch (CAMCALIB_OUT_PARAM)
+	{
+		case CAMCALIB_OUT_MATRIX:
+			out = camMatrix;
+			break;
+		case CAMCALIB_OUT_DISTORTION:
+			out = distortion;
+			break;
+		case CAMCALIB_OUT_ROTATION:
+			out = rotationMatrix;
+			break;
+		case CAMCALIB_OUT_TRANSLATION:
+			out = translationVector;
+			break;
+	}
 
-	Utilities::exportMat("cam_matrix.txt",camMatrix);
-	Utilities::exportMat("proj_matrix.txt",projMatrix);
-	Utilities::exportMat("proj_rotation_matrix.txt",projRotationMatrix);
-	Utilities::exportMat("proj_trans_vectror.txt",projTranslationVector);
-	Utilities::exportMat("proj_distortion.txt",projDist);
-	Utilities::exportMat("cam_distortion.txt",camDist);
+	Utilities::exportMat(path, out);
 
-	_chdir("../");
 	
 }
 
 //-------------------------------------------Tools----------------------------------------------
 
-void CamProjCalib::perspectiveTransformation(cv::vector<cv::Point2f> corners_in,cv::Mat homoMatrix, cv::vector<cv::Point3f> &points_out)
+void CameraCalibration::perspectiveTransformation(cv::vector<cv::Point2f> corners_in,cv::Mat homoMatrix, cv::vector<cv::Point3f> &points_out)
 {
 
 	for(int i=0; i<corners_in.size(); i++)
@@ -239,9 +171,9 @@ void CamProjCalib::perspectiveTransformation(cv::vector<cv::Point2f> corners_in,
 
 }
 
-void CamProjCalib::undistortCameraImgPoints(cv::vector<cv::Point2f> points_in,cv::vector<cv::Point2f> &points_out)
+void CameraCalibration::undistortCameraImgPoints(cv::vector<cv::Point2f> points_in,cv::vector<cv::Point2f> &points_out)
 {
-	cv::undistortPoints(points_in,points_out,camMatrix,camDist);
+	cv::undistortPoints(points_in,points_out,camMatrix,distortion);
 
 	float fX = camMatrix.at<double>(0,0);
 	float fY = camMatrix.at<double>(1,1);
@@ -258,7 +190,7 @@ void CamProjCalib::undistortCameraImgPoints(cv::vector<cv::Point2f> points_in,cv
 }
 
 //draw color in area outside the given rectangle
-void CamProjCalib::drawOutsideOfRectangle(cv::Mat img,cv::vector<cv::Point2f> rectanglePoints, float color)
+void CameraCalibration::drawOutsideOfRectangle(cv::Mat img,cv::vector<cv::Point2f> rectanglePoints, float color)
 {
 
 	std::vector<cv::Point> corners;
@@ -323,8 +255,10 @@ void image_point_return( int event, int x, int y, int flags, void* param )
 
 //--------------------------------------------------------------------------------------------------------------------
 
-void CamProjCalib::loadCameraImgs()
+void CameraCalibration::loadCameraImgs(const char *folderPath)
 {
+
+	Utilities::folderScan(folderPath);
 
 	while(numOfCamImgs == 0)
 	{
@@ -338,102 +272,47 @@ void CamProjCalib::loadCameraImgs()
 	{
 		std::stringstream path;
 
-		path<<"camera/"<<i+1<<".jpg";
+		path<<folderPath<<i+1<<".jpg";
 		
 		cv::Mat img = cv::imread(path.str().c_str() );
 		
 		if(img.empty())
 		{
-			std::cout<<"Error loading cam image "<<i+1<<"!";
+			std::cout<<"Error loading calibration image "<<i+1<<"!";
 			getch();
 			exit(-1);
 		}
 
-		camImgs.push_back(img);
+		calibImgs.push_back(img);
 	}
 
-	if(!camImgs[0].empty())
-		camImageSize = camImgs[0].size();
+	std::stringstream path;
+	path<<folderPath<<"extr.jpg";
+	extrImg = cv::imread(path.str().c_str());
+
+	if(extrImg.empty())
+	{
+		std::cout<<"Error loading extrinsicts calibration image!";
+		getch();
+		exit(-1);
+	}
+
+	if(!calibImgs[0].empty())
+		camImageSize = calibImgs[0].size();
 
 	std::cout<<"done!\n";
 
 }
 
-void CamProjCalib::unloadCameraImgs()
+void CameraCalibration::unloadCameraImgs()
 {
-
-	for(int i=0; i<camImgs.size();i++)
-		camImgs[i].release();
-
-}
-
-void CamProjCalib::loadProjectorImgs()
-{
-	
-	while(numOfProjImgs == 0)
-	{
-		std::cout<<"Give number of projector calibration images: ";
-		std::cin>>numOfProjImgs;
-	}
-
-	std::cout<<"Loading Projector Calibration Images...";
-
-	for(int i=0; i<numOfProjImgs;i++)
-	{
-		std::stringstream path;
-
-		path<<"projector/"<<i+1<<".jpg";
-		
-		cv::Mat img= cv::imread(path.str().c_str() );
-		
-		if(img.empty())
-		{
-			std::cout<<"Error loading cam image "<<i+1<<"!";
-			getch();
-			exit(-1);
-		}
-
-		projImgs.push_back(img);
-	}
-
-	std::cout<<"done!\n";
-}
-
-void CamProjCalib::unloadProjectorImgs()
-{
-	for(int i=0; i<projImgs.size();i++)
-		projImgs[i].release();
-}
-
-void CamProjCalib::loadProjectedCalibImg()
-{
-
-		std::stringstream path;
-
-		
-		path<<"cal.png";
-		
-		projCalibImg = cv::imread(path.str().c_str() );
-		
-		if(projCalibImg.empty())
-		{
-			std::cout<<"Error loading cam image projector's calibration image!";
-			getch();
-			exit(-1);
-		}
-
-		if(!projCalibImg.empty())
-			projImageSize = projCalibImg.size();
-
-}
-
-void CamProjCalib::unloadProjectedCalibImg()
-{
-	projCalibImg.release();			
+	for(int i=0; i<calibImgs.size();i++)
+		calibImgs[i].release();
+	extrImg.release();
 }
 
 //allow user to select a rectangular area in the image returning the for corners of the area
-cv::vector<cv::Point2f>  CamProjCalib::manualMarkCheckBoard(cv::Mat img)
+cv::vector<cv::Point2f>  CameraCalibration::manualMarkCheckBoard(cv::Mat img)
 {
 	
 	cv::vector<cv::Point2f> corners;
@@ -517,7 +396,7 @@ cv::vector<cv::Point2f>  CamProjCalib::manualMarkCheckBoard(cv::Mat img)
 }
 
 
-float CamProjCalib::markWhite(cv::Mat img)
+float CameraCalibration::markWhite(cv::Mat img)
 {
 	
 		float white;
@@ -581,7 +460,7 @@ float CamProjCalib::markWhite(cv::Mat img)
 }
 
 
-bool CamProjCalib:: findCornersInCamImg(cv::Mat img,cv::vector<cv::Point2f> *camCorners,cv::vector<cv::Point3f> *objCorners)
+bool CameraCalibration:: findCornersInCamImg(cv::Mat img,cv::vector<cv::Point2f> *camCorners,cv::vector<cv::Point3f> *objCorners)
 {
 
 	//copy camera img
@@ -707,11 +586,14 @@ bool CamProjCalib:: findCornersInCamImg(cv::Mat img,cv::vector<cv::Point2f> *cam
 }
 
 
-int CamProjCalib::extractCornersCameraCalibration()
+int CameraCalibration::extractImageCorners()
 {
 
-	if(camImgs.size()==0)
-		loadCameraImgs();
+	if(calibImgs.size()==0)
+	{
+		std::cout<<"Calibration Images are not loaded.\n";
+		return 0;
+	}
 
 	imgBoardCornersCam.clear();
 	objBoardCornersCam.clear();
@@ -723,7 +605,7 @@ int CamProjCalib::extractCornersCameraCalibration()
 		cv::vector<cv::Point2f> cCam;
 		cv::vector<cv::Point3f> cObj;
 
-		findCornersInCamImg(camImgs[i], &cCam, &cObj );
+		findCornersInCamImg(calibImgs[i], &cCam, &cObj );
 		
 		if(cCam.size())
 		{
@@ -737,16 +619,16 @@ int CamProjCalib::extractCornersCameraCalibration()
 }
 
 
-int CamProjCalib::calibrateCamera()
+int CameraCalibration::calibrateCamera()
 {
 	//check if corners for camera calib has been extracted
 	if(imgBoardCornersCam.size() == 0)
-		extractCornersCameraCalibration();
+		extractImageCorners();
 
 	cv::vector<cv::Mat> camRotationVectors;
   	cv::vector<cv::Mat> camTranslationVectors;
 
-	cv::calibrateCamera(objBoardCornersCam,imgBoardCornersCam,camImageSize,camMatrix, camDist, camRotationVectors,camTranslationVectors,0,
+	cv::calibrateCamera(objBoardCornersCam,imgBoardCornersCam,camImageSize,camMatrix, distortion, camRotationVectors,camTranslationVectors,0,
 		cv::TermCriteria( (cv::TermCriteria::COUNT)+(cv::TermCriteria::EPS), 30, DBL_EPSILON) );
 
 	camCalibrated = true;
@@ -754,58 +636,7 @@ int CamProjCalib::calibrateCamera()
 	return 1;
 }
 
-int CamProjCalib::findProjectorCorners(cv::Mat orgImg, cv::vector<cv::Point2f> &projCorners)
-{
-
-	std::vector<cv::Mat> rgb;
-	cv::Mat img;
-
-	orgImg.copyTo(img);
-		
-	cv::split(img,rgb);
-		
-	cv::Mat dst=rgb[0]-rgb[1]-rgb[2];
-
-	dst=255-dst;
-	cv::equalizeHist(dst,dst);
-
-	cv::namedWindow("rgb",CV_WINDOW_NORMAL);
-	cv::resizeWindow("rgb",800,600);
-	
-	cv::namedWindow("patern",CV_WINDOW_NORMAL);
-	cv::resizeWindow("patern",800,600);
-
-	cv::imshow("patern",dst);
-
-	cv::imshow("rgb",img);
-
-	int key = cv::waitKey(0);
-
-	if(key == 27) 
-		return 0;;
-
-	bool found=cv::findChessboardCorners(dst, cvSize(9,6), projCorners, CV_CALIB_CB_ADAPTIVE_THRESH );
-
-	std::cout<<" found = "<<projCorners.size()<<"\n";
-
-	if(found)
-		cv::cornerSubPix(rgb[2], projCorners, cvSize(20,20), cvSize(-1,-1), cvTermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1));
-
-	cv::drawChessboardCorners(img, cvSize(9,6), projCorners, found);
-
-	cv::imshow("rgb",img);
-
-	cv::waitKey(0);
-
-	cv::destroyWindow("rgb");
-	cv::destroyWindow("patern");
-
-	return found;
-
-}
-
-
-void CamProjCalib::manualMarkCalibBoardCorners(cv::Mat img,cv::vector<cv::Point2f> &imgPoints_out, cv::vector<cv::Point2f> &objPoints_out)
+void CameraCalibration::manualMarkCalibBoardCorners(cv::Mat img,cv::vector<cv::Point2f> &imgPoints_out, cv::vector<cv::Point2f> &objPoints_out)
 {
 
 	cv::Mat img_copy;
@@ -873,292 +704,47 @@ void CamProjCalib::manualMarkCalibBoardCorners(cv::Mat img,cv::vector<cv::Point2
 	cv::destroyWindow("Marked Board");
 }
 
-bool CamProjCalib::findCameraExtrisics(cv::vector<cv::Point2f> imgPoints, cv::vector<cv::Point2f> objPoints2D,cv::Mat &rMat_out, cv::Mat &tVec_out, cv::Mat &homoMatrix_out)
+bool CameraCalibration::findCameraExtrisics()
 {
 
-	//find homography
-	homoMatrix_out = cv::findHomography(imgPoints,objPoints2D);	
-	
-	cv::Mat rVec;
-	
-	//set object points of real world in 3D
+	cv::vector<cv::Point2f> imgPoints;
 	cv::vector<cv::Point3f> objPoints3D;
-	
-	for(int i=0; i<objPoints2D.size(); i++)
-	{
-		objPoints3D.push_back( cv::Point3f(objPoints2D[i].x ,objPoints2D[i].y ,0) );
-	}
 
-	//find extrinsics rotation & translation
-	cv::solvePnP(objPoints3D,imgPoints,camMatrix,camDist,rVec,tVec_out);
-	cv::Rodrigues(rVec,rMat_out);
-
-	std::cout<<rMat_out<<"\n\n\n"<<tVec_out<<"\n\n\n";
-
-	if(homoMatrix_out.empty())
-		return false;
-	else
-		return true;
-
-}
-
-bool CamProjCalib::findCornersInProjectionImg(cv::Mat img,cv::vector<cv::Point2f> &points_out)
-{
-
-	cv::Mat img_grey;
-	cv::cvtColor( img, img_grey, CV_RGB2GRAY );
-	img_grey= 150 - img_grey;
-
-	cv::namedWindow("Projected Image",CV_WINDOW_NORMAL);
-	cv::resizeWindow("Projected Image",800,600);
-	
-	cv::imshow("Projected Image",img_grey);
-	
-	cv::waitKey(0);
-	
-	bool found=cv::findChessboardCorners(img_grey, cvSize(9,6), points_out, CV_CALIB_CB_ADAPTIVE_THRESH );
-
-	
-	if(found)
-		cv::cornerSubPix(img_grey, points_out, cvSize(20,20), cvSize(-1,-1), cvTermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 30, 0.1));
-
-	cv::Mat img_copy;
-	img.copyTo(img_copy);
-	cv::drawChessboardCorners(img_copy, cvSize(9,6), points_out, found);
-	
-
-	cv::imshow("Projected Image",img_copy);
-
-	cv::waitKey(0);
-
-	cv::destroyWindow("Projected Image");
-	
-	return found;
-
-}
-
-int CamProjCalib::extractCornersProjectorCalibration()
-{
-
-	//check if projector Images are loaded
-	if(projImgs.size()==0)
-	{
-		loadProjectorImgs();
-	}
-
-	//check if projected image corners have been extracted
-	if(projectedCalibImgCorners.empty())
-	{
-
-		if(projCalibImg.empty())
-		{
-			loadProjectedCalibImg();
-		}
-
-		if(!findCornersInProjectionImg(projCalibImg,projectedCalibImgCorners))
-		{
-			std::cout<<"Projector's Calibration Image's corners could not be found.\n";
-			return(-1);
-		}
-	}
-
-	int numOfImgs = projImgs.size();
-
-	imgPaternCornersProj.clear();
-	imgBoardCornersProj.clear();
-	objBoardCornersProj.clear();
-
-	//extract corners for each projector picture
-	for(int i=0; i<numOfImgs; i++)
-	{
-
-		cv::vector<cv::Point2f> projCorners;
-		cv::vector<cv::Point2f> imgPoints,objPoints;
-
-		//extract projected patern coreners
-		if(!findProjectorCorners(projImgs[i], projCorners))
-			continue;
-		
-		//extract calibration board's corners
-		manualMarkCalibBoardCorners(projImgs[i],imgPoints,objPoints);
-
-		//store board corners
-		imgPaternCornersProj.push_back(projCorners);
-		imgBoardCornersProj.push_back(imgPoints);
-		objBoardCornersProj.push_back(objPoints);
-		
-	}
-	
-	return 1;
-}
-
-int CamProjCalib::calibrateProjector()
-{
-	//check if camera is calibrated
-	if(!camCalibrated)
-		calibrateCamera();
-
-	//check if corners are extracted from projector images
-	if(imgBoardCornersProj.size() == 0 || objBoardCornersProj.size() == 0 || imgPaternCornersProj.size() == 0)
-		extractCornersProjectorCalibration();
-
-	//check if projected image corners have been extracted
-	if(projectedCalibImgCorners.empty())
-	{
-
-		if(projCalibImg.empty())
-		{
-			loadProjectedCalibImg();
-		}
-
-		if(!findCornersInProjectionImg(projCalibImg,projectedCalibImgCorners))
-		{
-			std::cout<<"Projector's Calibration Image's corners could not be found.\n";
-			return(-1);
-		}
-	}
-
-	cv::vector<cv::vector<cv::Point3f>> proj3DPoints;
-	cv::vector<cv::vector<cv::Point2f>> calibImgPoints;
-	
-	for(int i=0; i<imgPaternCornersProj.size(); i++)
-	{
-		cv::vector<cv::Point2f> undistProjCorners;
-		cv::Mat homography, rMat, tVec;
-		cv::vector<cv::Point2f> imgPoints,objPoints,undistImgPoints;
-
-		undistortCameraImgPoints(imgPaternCornersProj[i],undistProjCorners);
-
-		imgPoints = imgBoardCornersProj[i];
-		objPoints = objBoardCornersProj[i];
-
-		undistortCameraImgPoints(imgPoints,undistImgPoints);
-
-		if(!findCameraExtrisics(undistImgPoints,objPoints,rMat,tVec,homography))
-			continue;
-		
-		cv::vector<cv::Point3f> proj3DP;
-		
-		perspectiveTransformation(undistProjCorners,homography,proj3DP);
-
-		proj3DPoints.push_back(proj3DP);
-		calibImgPoints.push_back(projectedCalibImgCorners);
-
-	}
-	
-	cv::vector<cv::Mat> projRotationVectors;
-  	cv::vector<cv::Mat> projTranslationVectors;
-	
-	//calibrate projector
-	cv::calibrateCamera(proj3DPoints, calibImgPoints, projImageSize, projMatrix, projDist, projRotationVectors, projTranslationVectors,0,cv::TermCriteria( cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 100, DBL_EPSILON) );
-
-	//find extrinsics
-	findProjectorExtrinsics();
-
-	projCalibrated=true;
-
-	return 1;
-}
-
-int CamProjCalib::findProjectorExtrinsics(int projImgNo)
-{
-	
-	if(projectedCalibImgCorners.empty())
-	{
-		if(!findCornersInProjectionImg(projCalibImg,projectedCalibImgCorners))
-		{
-			std::cout<<"Projector's Calibration Image's corners could not be found.\n";
-			return(-1);
-		}
-	}
-
-	cv::vector<cv::Point2f> imgCornersGeneral;
-	cv::vector<cv::Point3f> objCornersCamSpace;
-
-	for(int i=0; i<imgPaternCornersProj.size(); i++)
-	{
-		
-		cv::Mat camRotationMatrix,camTranslationVector,homoMatrix;
-
-		cv::vector<cv::Point2f>  undistImgBoardCorners;
-
-		undistortCameraImgPoints(imgBoardCornersProj[i],undistImgBoardCorners);
-
-		if(!findCameraExtrisics(undistImgBoardCorners, objBoardCornersProj[i], camRotationMatrix, camTranslationVector, homoMatrix))
-			return -1;
-
-		cv::vector<cv::Point2f> projCorners;
-		projCorners = imgPaternCornersProj[i];
-
-		undistortCameraImgPoints(projCorners,projCorners);
-		
-		
-		cv::vector<cv::Point3f> proj3DP;
-				
-		perspectiveTransformation(projCorners,homoMatrix,proj3DP);
-		
-		//convert corners to camera space
-		for(int i=0; i<proj3DP.size(); i++)
-		{
-			cv::Mat p(3,1,CV_64F);
-			p.at<double>(0,0) = proj3DP[i].x;
-			p.at<double>(1,0) = proj3DP[i].y;
-			p.at<double>(2,0) = proj3DP[i].z;
-
-			p = camRotationMatrix*p;
-		
-			p.at<double>(0,0) = p.at<double>(0,0) + camTranslationVector.at<double>(0,0);
-			p.at<double>(1,0) = p.at<double>(1,0) + camTranslationVector.at<double>(1,0);
-			p.at<double>(2,0) = p.at<double>(2,0) + camTranslationVector.at<double>(2,0);
-
-			proj3DP[i].x = p.at<double>(0,0);
-			proj3DP[i].y = p.at<double>(1,0);
-			proj3DP[i].z = p.at<double>(2,0);
-
-			objCornersCamSpace.push_back(proj3DP[i]);
-			imgCornersGeneral.push_back(projectedCalibImgCorners[i]);
-		}
-
-	}
+	findCornersInCamImg(extrImg, &imgPoints, &objPoints3D );
 
 	cv::Mat rVec;
-	cv::solvePnP(objCornersCamSpace,imgCornersGeneral, projMatrix, projDist,rVec,projTranslationVector);
-	cv::Rodrigues(rVec,projRotationMatrix);
+	
+	//find extrinsics rotation & translation
+	bool r = cv::solvePnP(objPoints3D,imgPoints,camMatrix,distortion,rVec,translationVector);
+	cv::Rodrigues(rVec,rotationMatrix);
 
+	std::cout<<rotationMatrix<<"\n\n\n"<<translationVector<<"\n\n\n";
+	return r;
 }
 
-
-void CamProjCalib::setSquareSize(cv::Size size_in_mm)
+void CameraCalibration::setSquareSize(cv::Size size_in_mm)
 {
 	squareSize = size_in_mm;
 }
 
-cv::Size CamProjCalib::getSquareSize()
+cv::Size CameraCalibration::getSquareSize()
 {
 	return squareSize;
 }
 
-void CamProjCalib::setNumberOfCameraImgs(int num)
+void CameraCalibration::setNumberOfCameraImgs(int num)
 {
 	numOfCamImgs = num;
 }
 
-int CamProjCalib::getNumberOfCameraImgs()
+int CameraCalibration::getNumberOfCameraImgs()
 {
 	return numOfCamImgs;
 }
 
-void CamProjCalib::setNumberOfProjectorImgs(int num)
-{
-	numOfProjImgs = num;
-}
 
-int CamProjCalib::getNumberOfProjectorImgs()
-{
-	return numOfProjImgs;
-}
 
-void CamProjCalib::printData()
+void CameraCalibration::printData()
 {
 	system("cls");
 
@@ -1166,21 +752,11 @@ void CamProjCalib::printData()
 	std::cout<<camMatrix<<"\n\n";
 
 	std::cout<<"-----Camera Distortion------\n";
-	std::cout<<camDist<<"\n\n";
+	std::cout<<distortion<<"\n\n";
 
-	std::cout<<"-----Projector Matrix------\n";
-	std::cout<<projMatrix<<"\n\n";
-
-	std::cout<<"-----Projector Distortion------\n";
-	std::cout<<projDist<<"\n\n";
-
-	std::cout<< "------Projector Rotation------\n";
-	std::cout << projRotationMatrix << "\n\n";
+	std::cout<< "------Camera Rotation------\n";
+	std::cout << rotationMatrix << "\n\n";
 
 	std::cout<< "------Projector Translation------\n";
-	std::cout << projTranslationVector << "\n\n";
-
-	
-	
-
+	std::cout << translationVector << "\n\n";
 }

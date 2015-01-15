@@ -10,35 +10,25 @@
 
 #pragma once
 
-#include "cv.h"
-#include "highgui.h"
-#include "GrayCodes.h"
+#include "PointCloudImage.h"
 
-#include "SLS2012.h"
-
-class Projector
+class MeshCreator
 {
 
-	public:
-	
-		Projector(int projW,int projH);
-	
-		~Projector(void);
+public:
 
-		int getHeight();
-		int getWidth();
+	MeshCreator(PointCloudImage *in);
+	~MeshCreator(void);
+	void computeMesh(std::string path);
 
-		void initProjectorWindow();
+private:
 
-		void showImg(IplImage* img);
-
-	private:
-
-		static int numOfProjectors;
-		
-		int projNum;
-		int height;
-		int width;
+	int *pixelNum;
+	PointCloudImage *cloud;
+	int MeshCreator::access(int i,int j);
+	int MeshCreator::access(int i,int j, int z);
+	int w;
+	int h;
 
 };
 

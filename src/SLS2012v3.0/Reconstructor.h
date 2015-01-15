@@ -34,24 +34,21 @@
 class Reconstructor
 {
 	public:
-		Reconstructor(void);
+		Reconstructor(int numOfCams);
 		~Reconstructor(void);
 
-		void loadProjectorAndCamera();
+		void loadCameras();
 		void runReconstruction();
 
-		VirtualCamera projector;
-		VirtualCamera camera;
-		PointCloudImage *points3DCamView;
+		VirtualCamera	*cameras;
 		PointCloudImage *points3DProjView;
-
-		void setImgPath(char path1st[], char path2nd[], char extension[] );
-		void saveShadowImg(char path[]);
-		void saveDecodedRowImg(char path[]);
-		void saveDecodedColImg(char path[]);
 
 		void setBlackThreshold(int val);
 		void setWhiteThreshold(int val);
+		void setImgPath(const char path1st[],const char path2nd[],const char extension[], int cam_no );
+		void saveShadowImg(const char path[]);
+		void saveDecodedRowImg(const char path[]);
+		void saveDecodedColImg(const char path[]);
 
 		void enableAutoContrast();
 		void disableAutoContrast();
@@ -62,21 +59,29 @@ class Reconstructor
 
 	private:
 		
-		void loadCamImgs();
+		int numOfCams;
+
+		VirtualCamera *camera;//general functions use this instead of camera1 or camera2
+
+		cv::vector<cv::Point> **camsPixels;
+		cv::vector<cv::Point> *camPixels; //general functions use this instead of cam1Pixels or cam2Pixels
+
+		void Reconstructor::loadCamImgs(std::string folder,std::string prefix,std::string suffix);
 		void unloadCamImgs();
-		void findProjectorCenter();
+
 		void computeShadows();
-		void proj2camSpace(cv::Point3f &p);
-		bool Reconstructor::getProjPixelForCamPixel(int x, int y, cv::Point &p_out);
-		void decodePaterns();
-		int  access(int i,int j, int h);
-		void smoothDecode();
-		void camProjPixelsTriangulation();
-		void projectorViewImage();
+
+		void Reconstructor::cam2WorldSpace(VirtualCamera cam, cv::Point3f &p);
 		
-		std::stringstream filePath1st;
-		std::stringstream filePath2nd;
-		std::stringstream fileExtension;
+		bool Reconstructor::getProjPixel(int x, int y, cv::Point &p_out);
+
+		void decodePaterns();
+
+		void Reconstructor::triangulation(cv::vector<cv::Point> *cam1Pixels, VirtualCamera cameras1, cv::vector<cv::Point> *cam2Pixels, VirtualCamera cameras2);
+		
+		std::string *camFolder;
+		std::string *imgPrefix;
+		std::string *imgSuffix;
 
 		int numberOfImgs;
 		int numOfColBits;
@@ -86,22 +91,23 @@ class Reconstructor
 		int whiteThreshold;
 
 		cv::vector<cv::Mat> camImgs;
+
 		cv::Mat mask;					//matrix with vals 0 and 1 , CV_8U , uchar
-		cv::Mat maskImg;
+
 		cv::Mat decRows;
 		cv::Mat decCols;
-		cv::Mat colorImg;
 
-		int col_gray_offset;
-		int row_gray_offset;
-
-		bool pathSet;
-
-		cv::Mat decColsMatrix;
-		cv::Mat decRowsMatrix;
+		bool *pathSet;
 
 		bool autoContrast_;
 		bool saveAutoContrast_;
 		bool raySampling_;
+
+		//access
+		int Reconstructor::ac(int x,int y)
+		{
+			return x*proj_h+y;
+		}
+
 };
 

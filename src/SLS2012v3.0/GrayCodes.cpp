@@ -72,7 +72,10 @@ void GrayCodes::unload()
 IplImage* GrayCodes::getImg(int num)
 {
 	if(num<numOfImgs)
+	{
+		currentImgNum = num;
 		return grayCodes[num];
+	}
 	else
 		return NULL;
 }

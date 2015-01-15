@@ -18,62 +18,50 @@
 #include <direct.h>
 
 
-class CamProjCalib
+
+class CameraCalibration
 {
-
+	 
 public:
-	CamProjCalib(void);
-	~CamProjCalib(void);
 
-	int calibrateProjector();
+	#define CAMCALIB_OUT_MATRIX 1
+	#define CAMCALIB_OUT_DISTORTION 2
+	#define CAMCALIB_OUT_ROTATION 3
+	#define CAMCALIB_OUT_TRANSLATION 4
+
+	CameraCalibration(void);
+	~CameraCalibration(void);
+
 	int calibrateCamera();
 
-	void loadCameraImgs();
+	void loadCameraImgs(const char *path);
 	void unloadCameraImgs();
 
-	void loadProjectorImgs();
-	void unloadProjectorImgs();
-
-	void loadProjectedCalibImg();
-	void unloadProjectedCalibImg();
-
-	void saveCalibData(char *path);
-	void CamProjCalib::exportTxtFiles();
-	void loadCalibData(char *path);
-
+	void saveCalibData(const char *pathNfilename);
+	void loadCalibData(const char *pathNfilename);
+	bool findCameraExtrisics();
 	//set data
-	void setSquareSize(cv::Size size);
+	void	setSquareSize(cv::Size size);
 	cv::Size getSquareSize();
 
-	void setNumberOfCameraImgs(int num);
-	int getNumberOfCameraImgs();
+	void	setNumberOfCameraImgs(int num);
+	int		getNumberOfCameraImgs();
 
-	void setNumberOfProjectorImgs(int num);
-	int getNumberOfProjectorImgs();
+	void	exportTxtFiles(const char *pathNfileName, int CAMCALIB_OUT_PARAM);
 
-	void printData();
+	void	printData();
 
-	int  findProjectorExtrinsics(int projImgNo=0);
-
-	int  extractCornersCameraCalibration();
-	int  extractCornersProjectorCalibration();
+	int		extractImageCorners();
 
 	cv::Mat camMatrix;
-	cv::Mat projMatrix;
-
-	cv::Mat camDist;
-	cv::Mat projDist;
-
-	cv::Mat projRotationMatrix;
-	cv::Mat projTranslationVector;
+	cv::Mat distortion;
+	cv::Mat rotationMatrix;
+	cv::Mat translationVector;
 
 private:
 
 	//functions
 	bool						findCornersInCamImg(cv::Mat camImg,cv::vector<cv::Point2f> *camCorners,cv::vector<cv::Point3f> *objCorners);
-	int							findProjectorCorners(cv::Mat orgImg, cv::vector<cv::Point2f> &projCorners);
-	bool						findCornersInProjectionImg(cv::Mat img,cv::vector<cv::Point2f> &points_out);
-
 	void						drawOutsideOfRectangle(cv::Mat img,cv::vector<cv::Point2f> rectanglePoints, float color);
 
 	cv::vector<cv::Point2f>		manualMarkCheckBoard(cv::Mat img);
@@ -83,32 +71,19 @@ private:
 	void						perspectiveTransformation(cv::vector<cv::Point2f> corners_in,cv::Mat homoMatrix, cv::vector<cv::Point3f> &points_out);
 	void						undistortCameraImgPoints(cv::vector<cv::Point2f> points_in,cv::vector<cv::Point2f> &points_out);
 	
-	bool						findCameraExtrisics(cv::vector<cv::Point2f> imgPoints, cv::vector<cv::Point2f> objPoints,cv::Mat &rMat_out, cv::Mat &tVec_out, cv::Mat &homoMatrix_out);
-
-	//corners data
-	cv::vector<cv::Point2f> projectedCalibImgCorners;
-
-	cv::vector<cv::vector<cv::Point2f> > imgPaternCornersProj;
-	cv::vector<cv::vector<cv::Point2f> > imgBoardCornersProj; 
-	cv::vector<cv::vector<cv::Point2f> > objBoardCornersProj;
-
 	cv::vector<cv::vector<cv::Point2f>> imgBoardCornersCam;
 	cv::vector<cv::vector<cv::Point3f>> objBoardCornersCam;
 	
 	//images
-	cv::Vector<cv::Mat> camImgs;
-	cv::Vector<cv::Mat> projImgs;
-	cv::Mat projCalibImg;
+	cv::Vector<cv::Mat> calibImgs;
+	cv::Mat				extrImg;
 
-	cv::Size squareSize;
-	int numOfCamImgs;
-	int numOfProjImgs;
+	cv::Size	squareSize;
+	int			numOfCamImgs;
 
-	cv::Size camImageSize;
-	cv::Size projImageSize;
+	cv::Size	camImageSize;
 
-	bool camCalibrated;
-	bool projCalibrated;
+	bool		camCalibrated;
 
 };
 

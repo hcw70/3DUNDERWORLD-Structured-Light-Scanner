@@ -15,16 +15,24 @@
 Scanner::Scanner(bool webCam)
 {
 	web=webCam;
+	proj=new Projector(proj_w,proj_h);
+	whiteImg = cv::Mat::ones(proj_h,proj_w,CV_8U)*255;
+	EdsInitializeSDK();
 }
 
 
 Scanner::~Scanner(void)
 {
-
+	EdsTerminateSDK();
+		///Destroy the window
+	delete proj;
 }
 
-bool Scanner::captureCalib(CameraController *camera)
+bool Scanner::capturePhotoSequence(CameraController *camera)
 {
+
+	proj->showImg(whiteImg);
+
 	//startCameraLiveView
 	camera->startLiveview();
 
@@ -69,16 +77,16 @@ bool Scanner::captureCalib(CameraController *camera)
 
 //capture photos for calibration, photos will saved on path
 //this is curently available only for 
-bool Scanner::captureCalib(CameraController *camera, char* path)
+bool Scanner::capturePhotoSequence(CameraController *camera, char* path)
 {
-
+	
 	//if is a canon cam regular captureCalib is called
 	if(camera->isCanonCam())
 	{
-		return captureCalib(camera);
+		return capturePhotoSequence(camera);
 	}
 
-
+	proj->showImg(whiteImg);
 	//startCameraLiveView
 	camera->startLiveview();
 
@@ -89,8 +97,7 @@ bool Scanner::captureCalib(CameraController *camera, char* path)
 
 	while(true)
 	{
-		
-
+	
 		camera->UpdateView();
 
 		key = cvWaitKey(10);
@@ -109,12 +116,12 @@ bool Scanner::captureCalib(CameraController *camera, char* path)
 			break;
 		}
 
-		
 	}
 
 	camera->endLiveview();
 
 	cvWaitKey(100);
+
 	if(key == 27)
 		return 0;
 	else 
@@ -122,10 +129,28 @@ bool Scanner::captureCalib(CameraController *camera, char* path)
 
 }
 
-
+//project paterns and capture photos from all cameras
 void Scanner::capturePaterns(CameraController *camera[],int camCount)
 {
+
+	std::cout << "\t-Generate Gray Codes..."  ;
+
+	grayCodes= new GrayCodes(proj_w,proj_h);
+	grayCodes->generateGrays();
+
+	proj->showImg(grayCodes->getNextImg());
+
+	cv::waitKey(100);
+
+	std::cout << "done!\n" << std::endl;
 	
+	std::cout<<"System is ready to scan object. Press 'Enter' to start the Automatic Scanning\n";
+		
+	int key=0;
+		
+	while(key!=13)
+		key = cvWaitKey(10);
+
 	int grayCount=0;
 
 	for(int i=0; i<camCount; i++)
@@ -133,7 +158,7 @@ void Scanner::capturePaterns(CameraController *camera[],int camCount)
 		camera[i]->resetSaveCount();
 	}
 
-	proj->showImg(grayCodes->getImg(0));
+	
 
 	while(true)
 	{
@@ -155,7 +180,9 @@ void Scanner::capturePaterns(CameraController *camera[],int camCount)
 			break;
 
 		proj->showImg(grayCodes->getNextImg());
-			
+		
+		
+
 		key=cvWaitKey(100);
 	
 		if(key == 27)
@@ -166,128 +193,61 @@ void Scanner::capturePaterns(CameraController *camera[],int camCount)
 
 }
 
-
-
-void Scanner::scan(bool scanOnly)	
+bool Scanner::capturePhotoAllCams(CameraController *cameras[],int camCount)
 {
-	std::cout << "Starting Scanner...\n\n" << std::endl;
-	
-	int projW = proj_w;
-	int projH = proj_h;
 
-	std::cout << "\t-Generate Gray Codes..."  ;
+	std::cout << "\nPress 'Enter' to capture 1 photo (both Cameras) for camera - camera calibration..\n" << std::endl;
 
-		grayCodes= new GrayCodes(projW,projH);
-		grayCodes->generateGrays();
-	
-	std::cout << "done!\n" << std::endl;
-	std::cout << "\t-Load Projector Calibration Image..." ;
-	
-		projCalibBoard = cvLoadImage("scan/cal.png");
+	proj->showImg(whiteImg);
 
-		if(!projCalibBoard)
-		{
-			std::cout<<"\nError: Projector Calibration Image not found.\n";
-			getch();
-			exit(-1);
-		}
-
-	std::cout << "done!\n" << std::endl;
-	std::cout << "\t-Setting up Projector and Camera..." ;
-
-		proj=new Projector(projW,projH);
-
-		EdsInitializeSDK();
-
-		int numOfCams;
-
-		camera[0] = new CameraController(web);
-		numOfCams =	camera[0]->getNumOfCams();
-
-		for(int i=1; i<numOfCams; i++)
-		{
-			camera[i] = new CameraController(web);
-		}
-
-	
-		proj->showImg(grayCodes->getImg(0));
-
-	std::cout << "done!\n" << std::endl;
-
-	
-	bool continue_val=true;
-
-	//take calibration pictures
-	if(!scanOnly)
+	for(int i =0; i<camCount; i++)
 	{
-		for(int i=0; i<numOfCams; i++)
-		{
-			
-			cvWaitKey(1);
-			
-			std::cout << "\nPress 'Enter' to capture photos for camera calibration. When you are done press 'Space'.\n" << std::endl;
-
-			//capture calibration images with camera [i]
-			if(camera[i]->isWebCam())
-				continue_val = captureCalib(camera[i],"scan/camCalib/");
-			else
-				continue_val = captureCalib(camera[i]);
-
-
-			//if user dont want ot continue break
-			if(!continue_val)
-				break;
-
-			//project calibration patern
-			proj->showImg(projCalibBoard);
-			cvWaitKey(1);
-
-			//affects only webCams
-			camera[i]->resetSaveCount();
-
-			std::cout << "\nPress 'Enter' to capture photos for projector calibration. When you are done press 'Space'.\n" << std::endl;
-
-			//capture projector calibration images
-			if(camera[i]->isWebCam())
-				continue_val = captureCalib(camera[i],"scan/projCalib/");
-			else
-				continue_val = captureCalib(camera[i]);
-		
-			//if user dont want to continue break
-			if(!continue_val)
-				break;
-
-			
-		}
+		//startCameraLiveView
+		cameras[i]->startLiveview();
 	}
 
+	int key;
 
-	if(continue_val)
+	while(true)
 	{
-
-		proj->showImg(grayCodes->getNextImg());
-		cvWaitKey(100);
-
-		std::cout<<"System is ready to scan object. Press 'Enter' to start the Automatic Scanning\n";
 		
-		int key=0;
+		for(int i =0; i<camCount; i++)
+		{
+			//startCameraLiveView
+			cameras[i]->UpdateView();
+		}
 		
-		while(key!=13)
-			key = cvWaitKey(10);
+		key = cvWaitKey(10);
 
-		capturePaterns(camera, numOfCams);
+		///If enter is pressed then capture the image
+		if (key == 13)
+		{
+			for(int i =0; i<camCount; i++)
+			{
+				cameras[i]->captureImg();
+			}
+			break;
+		}
+		
+		//32-> enter / 27-> esc 
+		if(key == 32 || key == 27)
+		{
+			break;
+		}
+
+		
 	}
-	
-	for(int i=0; i<numOfCams; i++)
+
+	for(int i =0; i<camCount; i++)
 	{
-		delete camera[i];
+		cameras[i]->endLiveview();
 	}
 
-	EdsTerminateSDK();
+	cvWaitKey(100);
 
-
-	///Destroy the window
-	delete proj;
-	
-	
+	if(key == 27)
+		return 0;
+	else 
+		return 1;
 }
+

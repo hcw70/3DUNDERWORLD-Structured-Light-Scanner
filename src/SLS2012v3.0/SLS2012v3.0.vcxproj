@@ -160,7 +160,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="CameraController.h" />
-    <ClInclude Include="CamProjCalib.h" />
+    <ClInclude Include="CameraCalibration.h" />
     <ClInclude Include="CanonCamera.h" />
     <ClInclude Include="GrayCodes.h" />
     <ClInclude Include="MeshCreator.h" />
@@ -179,7 +179,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CameraController.cpp" />
-    <ClCompile Include="CamProjCalib.cpp" />
+    <ClCompile Include="CameraCalibration.cpp" />
     <ClCompile Include="CanonCamera.cpp" />
     <ClCompile Include="GrayCodes.cpp" />
     <ClCompile Include="MeshCreator.cpp" />

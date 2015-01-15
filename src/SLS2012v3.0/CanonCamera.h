@@ -10,14 +10,9 @@
 
 #pragma once
 
-
-#include "stdafx.h"
-#include "SLS2012.h"
-#include <iostream>
-#include <fstream>
-using std::ofstream;
 #include "cv.h"
 #include "highgui.h"
+#include <conio.h>
 
 #include "EDSDK.h"
 #include "EDSDKErrors.h"
@@ -29,50 +24,39 @@ using std::ofstream;
 using std::min;
 using std::max;
 #include <gdiplus.h>
-#include "GrayCodes.h"
 
-#include <conio.h>
+#include <iostream>
+#include <fstream>
+using std::ofstream;
 
-#include "CameraController.h"
-#include "WebCam.h"
-#include "CanonCamera.h"
 #include <atlimage.h>
-#include "Projector.h"
 
-#define SCANNER_USE_WEBCAM true
-#define SCANNER_USE_CANON false
 
-#define SCAN_ONLY true
-#define SCAN_N_CALIB false
 
-class Scanner
+
+class CanonCamera
 {
+	public:
+		CanonCamera(void);
 
-public:
-	Scanner(bool web);
+		~CanonCamera(void);
 
-	~Scanner(void);
+		EdsError startLiveview();
+		EdsError endLiveview();
+		void UpdateView();
 
-	void scan(bool scanOnly);
+		int getNumOfCams();
+		void captureImg();
 
-	void capturePaterns(CameraController *camera[],int camCount);
-	
-	bool captureCalib(CameraController *camera);
+	private:
 
-	//capture images and save them on path folder
-	bool captureCalib(CameraController *camera, char* path);
-	void capturePaterns(CameraController *camera[],int camCount, char* path);
+		std::string windowName;
+		IplImage* liveImage;
+		EdsCameraRef camera;
+		static int numOfCameras;
+		int detectedCams;
+		int camID;
+		bool liveView;
 
-private:
-
-	bool web;
-
-	IplImage* projCalibBoard ;
-
-	CameraController *camera[5];
-
-	GrayCodes *grayCodes;
-
-	Projector *proj;
 };
 

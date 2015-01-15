@@ -27,9 +27,6 @@
     <ClInclude Include="targetver.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SLS2012.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="GrayCodes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -63,21 +60,21 @@
     <ClInclude Include="MeshCreator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="CamProjCalib.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Sample.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="RNG.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CameraCalibration.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SLS2012.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SLS2012.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GrayCodes.cpp">
@@ -113,10 +110,13 @@
     <ClCompile Include="MeshCreator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="CamProjCalib.cpp">
+    <ClCompile Include="Sample.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sample.cpp">
+    <ClCompile Include="CameraCalibration.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SLS2012.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

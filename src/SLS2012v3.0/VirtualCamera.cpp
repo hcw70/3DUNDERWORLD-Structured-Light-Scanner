@@ -18,11 +18,16 @@ VirtualCamera::VirtualCamera(void)
 	distortion=NULL;
 	rotationMatrix=NULL;
 	translationVector=NULL;
+	fc.x=0;
+	fc.y=0;
+	cc.x=0;
+	cc.y=0;
 }
 
 
 VirtualCamera::~VirtualCamera(void)
 {
+
 }
 
 void VirtualCamera::loadDistortion(std::string path)

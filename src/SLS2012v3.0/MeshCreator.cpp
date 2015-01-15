@@ -26,14 +26,15 @@ MeshCreator::~MeshCreator(void)
 	delete pixelNum;
 }
 
-void MeshCreator::computeMesh(char path[])
+void MeshCreator::computeMesh(std::string path)
 {
 
 	int count=1;
 	bool return_val;
 	cv::Point3f point;
 	std::ofstream out1; 
-	out1.open(path);
+
+	out1.open(path.c_str());
 
 	std::cout<<"Export "<< path << "...";
 
@@ -83,7 +84,7 @@ void MeshCreator::computeMesh(char path[])
 				out1<<"f "<< v1<<"/"<<v1<< " "<< v3<<"/"<<v3<< " "<<v2<<"/"<<v2<<"\n";  
 		}
 	}
-
+	out1.close();
 	std::cout<<"done!\n";
 }
 

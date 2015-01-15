@@ -10,9 +10,14 @@
 
 #pragma once
 
+
+#include "stdafx.h"
+#include "SLS2012.h"
+#include <iostream>
+#include <fstream>
+using std::ofstream;
 #include "cv.h"
 #include "highgui.h"
-#include <conio.h>
 
 #include "EDSDK.h"
 #include "EDSDKErrors.h"
@@ -24,37 +29,51 @@
 using std::min;
 using std::max;
 #include <gdiplus.h>
+#include "GrayCodes.h"
 
-#include <iostream>
-#include <fstream>
-using std::ofstream;
+#include <conio.h>
 
+#include "CameraController.h"
+#include "WebCam.h"
+#include "CanonCamera.h"
 #include <atlimage.h>
+#include "Projector.h"
 
+#define SCANNER_USE_WEBCAM true
+#define SCANNER_USE_CANON false
 
+#define SCAN_ONLY true
+#define SCAN_N_CALIB false
 
-class CanonCamera
+class Scanner
 {
-	public:
-		CanonCamera(void);
 
-		~CanonCamera(void);
+public:
+	Scanner(bool web);
 
-		EdsError startLiveview();
-		EdsError endLiveview();
-		void UpdateView();
+	~Scanner(void);
 
-		int getNumOfCams();
-		void captureImg();
+	void scan(bool scanOnly);
 
-	private:
+	void capturePaterns(CameraController *cameras[],int camCount);
+	
+	bool capturePhotoAllCams(CameraController *cameras[],int camCount);
 
-		IplImage* liveImage;
-		EdsCameraRef camera;
-		static int numOfCameras;
-		int detectedCams;
-		int camID;
-		bool liveView;
+	bool capturePhotoSequence(CameraController *camera);
+	//capture images and save them on path folder
+	bool capturePhotoSequence(CameraController *camera, char* path);
 
+	
+
+private:
+
+	bool web;
+
+
+	cv::Mat whiteImg;
+
+	GrayCodes *grayCodes;
+
+	Projector *proj;
 };
 

@@ -19,6 +19,10 @@ CanonCamera::CanonCamera(void)
 	camID = numOfCameras;
 	numOfCameras++;
 
+	windowName = "Camera ";
+	windowName += '1' + camID;
+	windowName += " Window";
+
 	EdsCameraListRef cameraList = NULL;
 	
 	EdsGetCameraList(&cameraList);
@@ -60,6 +64,7 @@ CanonCamera::CanonCamera(void)
 		exit(-1);
 	}
 	
+
 }
 
 CanonCamera::~CanonCamera(void)
@@ -72,8 +77,8 @@ CanonCamera::~CanonCamera(void)
 EdsError CanonCamera::startLiveview()
 {
 
-	cvNamedWindow("Scanner Window",CV_WINDOW_AUTOSIZE);
-	cvResizeWindow("Scanner Window",640,480);
+	cvNamedWindow(windowName.c_str(),CV_WINDOW_AUTOSIZE);
+	cvResizeWindow(windowName.c_str(),640,480);
 
 	EdsError err = EDS_ERR_OK;
 
@@ -105,7 +110,7 @@ EdsError CanonCamera::endLiveview()
 		err = EdsSetPropertyData(camera, kEdsPropID_Evf_OutputDevice, 0 , sizeof(device), &device);
 	}
 
-	cvDestroyWindow("Scanner Window");
+	cvDestroyWindow(windowName.c_str());
 
 	liveView=false;
 
@@ -268,7 +273,7 @@ void CanonCamera::UpdateView()
 
 	EdsRelease(image);
 	
-	cvShowImage("Scanner Window", liveImage);
+	cvShowImage(windowName.c_str(), liveImage);
 
 	cvReleaseImage(&liveImage);
     
