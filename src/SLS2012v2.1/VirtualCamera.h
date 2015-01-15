@@ -11,26 +11,41 @@
 #pragma once
 
 #include "cv.h"
-#include "VirtualCamera.h"
+#include <stdio.h>
+#include <string.h>
+#include <iostream>
+#include <fstream>
 
-class Utilities
+class VirtualCamera
 {
 
-	public:
-		Utilities(void);
-		~Utilities(void);
-		static bool XOR(bool val1, bool val2);
-		static void normalize3d(CvScalar &vec);
-		static void normalize3dtable(double vec[3]);
-		static void pixelToImageSpace(double p[3], CvScalar fc, CvScalar cc);
-		static void Utilities::pixelToImageSpace(cv::Point3f &p, float ccX,float ccY, float fcX, float fcY);
-		static void undistortPoints( double xi, double yi, VirtualCamera *cam,double *xd,double *yd);
-		static CvScalar planeRayInter(CvScalar planeNormal,CvScalar planePoint, CvScalar rayVector, CvScalar rayPoint );
-		static float matGet2D(cv::Mat m, int x, int y);
-		static void matSet2D(cv::Mat m, int x, int y, double val);
-		static void autoContrast(cv::Mat img_in, cv::Mat &img_out);
-		static void autoContrast(IplImage *img_in, IplImage *img_out);
-		static void Utilities::exportMat(char *path, cv::Mat m);
+public:
+
+	VirtualCamera(void);
+	~VirtualCamera(void);
+
+
+	void loadDistortion(std::string path);
+	void loadCameraMatrix(std::string path);
+	void loadRotationMatrix(std::string path);
+	void loadTranslationVector(std::string path);
+
+	
+	cv::Mat distortion;
+	cv::Mat rotationMatrix;
+	cv::Mat translationVector;
+
+	cv::Point3f position;
+
+	cv::Point2f fc; 
+	cv::Point2f cc; 
+
+	int width;
+	int height;
+
+private:
+
+	int loadMatrix(cv::Mat &matrix,int s1,int s2 ,std::string file);
 
 };
 

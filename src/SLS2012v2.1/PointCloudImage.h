@@ -8,61 +8,46 @@
 //* Link: http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US                                        *
 //------------------------------------------------------------------------------------------------------------
 
-#include "stdafx.h"
+#pragma once
 
-#ifndef __GRAY_CODES_H__
-#define __GRAY_CODES_H__
-
-#include "stdafx.h"
-#include <iostream>
-#include <fstream>
-using std::ofstream;
 #include "cv.h"
 #include "highgui.h"
-#include <math.h>
 #include "Utilities.h"
 
-#define GRAY_MAX_NUM 100
+#include <iostream>
+#include <fstream>
 
-class GrayCodes	{
-	public: 
-		///Constructor
-		GrayCodes(int projW, int projH);
+#define MAXSIZE (1600*1200)
 
-		///Destructor
-		~GrayCodes();
+class PointCloudImage
+{
+	public:
 
-		void unload();
-		int getNumOfImgs();
-		IplImage* getNextImg();
+		PointCloudImage(int imageW,int imageH, bool color);
+		~PointCloudImage(void);
+
+		bool setPoint(int i_w, int j_h, cv::Point3f point, cv::Vec3f colorBGR);
+		bool setPoint(int i_w, int j_h, cv::Point3f point);
+
+		bool getPoint(int i_w, int j_h, cv::Point3f &pointOut);
+		bool getPoint(int i_w, int j_h, cv::Point3f &pointOut, cv::Vec3f &colorOut);
+
+		bool addPoint(int i_w, int j_h, cv::Point3f point, cv::Vec3f color);
+		bool addPoint(int i_w, int j_h, cv::Point3f point);
+
+		void exportNumOfPointsPerPixelImg(char path[]);
+		void exportXYZ(char *path,bool exportOffPixels=true, bool colorFlag=true);
+
+		int getWidth();
+		int getHeight();
+
+	private:
 		
-		IplImage* getImg(int num);
+		int w;
+		int h;
 
-		void generateGrays();
-
-		void save();
-		static int grayToDec(bool grayCol[], int size);
-		int GrayCodes::getNumOfRowBits();
-		int GrayCodes::getNumOfColBits();
-		
-	protected:
-		IplImage* grayCodes[GRAY_MAX_NUM];
-		IplImage* colorCodes[GRAY_MAX_NUM];
-
-		void calNumOfImgs();
-
-		void allocMemForImgs();
-
-		bool imgsLoaded;
-
-		int numOfImgs;
-		int numOfRowImgs;
-		int numOfColImgs;
-
-		int currentImgNum;
-		
-		int height;
-		int width;
+		cv::Mat points;
+		cv::Mat numOfPointsForPixel;
+		cv::Mat color;
 };
 
-#endif

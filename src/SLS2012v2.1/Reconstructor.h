@@ -40,8 +40,8 @@ class Reconstructor
 		void loadProjectorAndCamera();
 		void runReconstruction();
 
-		VirtualCamera *projector;
-		VirtualCamera *camera;
+		VirtualCamera projector;
+		VirtualCamera camera;
 		PointCloudImage *points3DCamView;
 		PointCloudImage *points3DProjView;
 
@@ -66,10 +66,8 @@ class Reconstructor
 		void unloadCamImgs();
 		void findProjectorCenter();
 		void computeShadows();
-		void computeProjPlanesNormals(double normals[], int numberOfplanes, int planeSize,bool rowFlag);
-		void computeProjPlaneNormal(double out[3], float numberOfplane, int planeSize, bool rowFlag);
-		void proj2camSpace(double p[3]);
-		CvScalar getProjPixelForCamPixel(int x, int y, bool *error);
+		void proj2camSpace(cv::Point3f &p);
+		bool Reconstructor::getProjPixelForCamPixel(int x, int y, cv::Point &p_out);
 		void decodePaterns();
 		int  access(int i,int j, int h);
 		void smoothDecode();
@@ -87,23 +85,20 @@ class Reconstructor
 		int blackThreshold;
 		int whiteThreshold;
 
-		IplImage** camImgs;
-		bool *mask;
-		IplImage* maskImg;
-		IplImage* decRows;
-		IplImage* decCols;
-		IplImage* colorImg;
+		cv::vector<cv::Mat> camImgs;
+		cv::Mat mask;					//matrix with vals 0 and 1 , CV_8U , uchar
+		cv::Mat maskImg;
+		cv::Mat decRows;
+		cv::Mat decCols;
+		cv::Mat colorImg;
 
 		int col_gray_offset;
 		int row_gray_offset;
 
 		bool pathSet;
 
-		float *decColsMatrix;
-		float *decRowsMatrix;
-
-		double *projColPlanesNormals;
-		double *projRowPlanesNormals;
+		cv::Mat decColsMatrix;
+		cv::Mat decRowsMatrix;
 
 		bool autoContrast_;
 		bool saveAutoContrast_;

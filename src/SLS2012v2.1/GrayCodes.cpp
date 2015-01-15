@@ -222,20 +222,20 @@ void GrayCodes::save()
 }
 
 //convert a gray code sequence to a decimal number
-int GrayCodes::grayToDec(bool grayCol[], int size)
+int GrayCodes::grayToDec(cv::vector<bool> gray)
 {
 	int dec=0;
-	bool tmp = grayCol[0];
+	bool tmp = gray[0];
 	
 	if(tmp)
-		dec+=(int) pow((float)2,size-1);
+		dec+=(int) pow((float)2,int (gray.size() -1));
 
-	for(int i=1; i< size; i++)
+	for(int i=1; i< gray.size(); i++)
 	{
-		tmp=Utilities::XOR(tmp,grayCol[i]);
+		tmp=Utilities::XOR(tmp,gray[i]);
 
 		if(tmp)
-			dec+= (int) pow((float)2,size-i-1);
+			dec+= (int) pow((float)2,int (gray.size()-i-1) );
 	}
 	return dec;
 }

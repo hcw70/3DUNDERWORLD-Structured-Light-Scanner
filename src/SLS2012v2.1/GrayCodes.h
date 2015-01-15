@@ -8,46 +8,61 @@
 //* Link: http://creativecommons.org/licenses/by-nc-sa/3.0/deed.en_US                                        *
 //------------------------------------------------------------------------------------------------------------
 
-#pragma once
+#include "stdafx.h"
 
-#include "cv.h"
-#include "highgui.h"
+#ifndef __GRAY_CODES_H__
+#define __GRAY_CODES_H__
 
+#include "stdafx.h"
 #include <iostream>
 #include <fstream>
+using std::ofstream;
+#include "cv.h"
+#include "highgui.h"
+#include <math.h>
+#include "Utilities.h"
 
-#define MAXSIZE (1600*1200)
+#define GRAY_MAX_NUM 100
 
-class PointCloudImage
-{
-	public:
+class GrayCodes	{
+	public: 
+		///Constructor
+		GrayCodes(int projW, int projH);
 
-		PointCloudImage(int imageW,int imageH, bool color);
-		~PointCloudImage(void);
+		///Destructor
+		~GrayCodes();
 
-		bool setPoint(int i_w, int j_h, CvScalar point, CvScalar color);
-		bool setPoint(int i_w, int j_h, CvScalar point);
-		bool PointCloudImage::getPoint(int i_w, int j_h, CvScalar *pointOut, CvScalar *colorOut=NULL);
-		bool addPoint(int i_w, int j_h, CvScalar point, CvScalar color);
-		bool addPoint(int i_w, int j_h, CvScalar point);
-		void PointCloudImage::exportNumOfPointsPerPixelImg(char path[]);
-		void exportXYZ(char *path,bool exportOffPixels=true, bool colorFlag=true);
-
-		int getWidth();
-		int getHeight();
-
-	private:
+		void unload();
+		int getNumOfImgs();
+		IplImage* getNextImg();
 		
-		int w;
-		int h;
+		IplImage* getImg(int num);
 
-		int PointCloudImage::accessPoint(int i,int j);
-		int PointCloudImage::accessTable(int i,int j);
+		void generateGrays();
 
-		int numOfTables;
+		void save();
+		static int grayToDec(cv::vector<bool> gray);
+		int GrayCodes::getNumOfRowBits();
+		int GrayCodes::getNumOfColBits();
+		
+	protected:
+		IplImage* grayCodes[GRAY_MAX_NUM];
+		IplImage* colorCodes[GRAY_MAX_NUM];
 
-		CvScalar **points;
-		int **numOfPointsForPixel;
-		CvScalar **color;
+		void calNumOfImgs();
+
+		void allocMemForImgs();
+
+		bool imgsLoaded;
+
+		int numOfImgs;
+		int numOfRowImgs;
+		int numOfColImgs;
+
+		int currentImgNum;
+		
+		int height;
+		int width;
 };
 
+#endif

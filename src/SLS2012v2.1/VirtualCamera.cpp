@@ -10,6 +10,7 @@
 
 #include "StdAfx.h"
 #include "VirtualCamera.h"
+#include "Utilities.h"
 
 
 VirtualCamera::VirtualCamera(void)
@@ -26,34 +27,33 @@ VirtualCamera::~VirtualCamera(void)
 
 void VirtualCamera::loadDistortion(std::string path)
 {
-	loadMatrix(&distortion,5,1,path);
+	loadMatrix(distortion,5,1,path);
 }
 
 void VirtualCamera::loadCameraMatrix(std::string path)
 {
-	CvMat* camMatrix=NULL;
-	loadMatrix(&camMatrix,3,3,path);
+	cv::Mat camMatrix;
+	loadMatrix(camMatrix,3,3,path);
 
-	cc.val[0]=cvGet2D(camMatrix,0,2).val[0];
-	cc.val[1]=cvGet2D(camMatrix,1,2).val[0];
+	cc.x = Utilities::matGet2D(camMatrix,2,0);
+	cc.y = Utilities::matGet2D(camMatrix,2,1);
+	
+	fc.x = Utilities::matGet2D(camMatrix,0,0);
+	fc.y = Utilities::matGet2D(camMatrix,1,1);
 
-	fc.val[0]=cvGet2D(camMatrix,0,0).val[0];
-	fc.val[1]=cvGet2D(camMatrix,1,1).val[0];
-
-	cvReleaseMat(&camMatrix);
 }
 
 void VirtualCamera::loadRotationMatrix(std::string path)
 {
-	loadMatrix(&rotationMatrix,3,3,path);
+	loadMatrix(rotationMatrix,3,3,path);
 }
 
 void VirtualCamera::loadTranslationVector(std::string path)
 {
-	loadMatrix(&translationVector,3,1,path);
+	loadMatrix(translationVector,3,1,path);
 }
 
-int VirtualCamera::loadMatrix(CvMat **matrix,int s1,int s2 ,std::string file){
+int VirtualCamera::loadMatrix(cv::Mat &matrix,int rows,int cols ,std::string file){
 
 	std:: ifstream in1; 
 	in1.open(file.c_str());
@@ -65,23 +65,19 @@ int VirtualCamera::loadMatrix(CvMat **matrix,int s1,int s2 ,std::string file){
 
 	}
 
-	if(*matrix!=NULL)
-		cvReleaseMat(matrix);
+	if(!matrix.empty())
+		matrix.release();
 
-	*matrix=cvCreateMat(s1,s2,CV_32FC1);
+	matrix=cv::Mat(rows, cols, CV_32F);
 
-	for(int i=0; i<s1; i++)
+	for(int i=0; i<rows; i++)
 	{
-		for(int j=0; j<s2; j++)
+		for(int j=0; j<cols; j++)
 		{
 			float val;
 			in1>>val;
-			CvScalar v;
-			v.val[0]=val; 
-			if(s2>1)
-				cvSet2D(*matrix,i,j,v);
-			else
-				(*matrix)->data.fl[i]=val;
+
+			Utilities::matSet2D(matrix,j,i,val);
 
 		}
 	}

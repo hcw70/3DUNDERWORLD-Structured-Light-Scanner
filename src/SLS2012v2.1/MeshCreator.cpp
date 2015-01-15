@@ -31,7 +31,7 @@ void MeshCreator::computeMesh(char path[])
 
 	int count=1;
 	bool return_val;
-	CvScalar point;
+	cv::Point3f point;
 	std::ofstream out1; 
 	out1.open(path);
 
@@ -41,11 +41,13 @@ void MeshCreator::computeMesh(char path[])
 	{
 		for(int j=0; j<h; j++)
 		{
-			return_val=cloud->getPoint(i,j,&point,NULL);
+			
+			return_val = cloud->getPoint(i,j,point);
+
 			if(return_val)
 			{
 				pixelNum[access(i,j)]=count;
-				out1<<"v "<< point.val[0]<< " "<< point.val[1]<< " "<<point.val[2]<< "\n";  
+				out1<<"v "<< point.x<< " "<< point.y<< " "<<point.z<< "\n";  
 				count++;
 			}
 			else

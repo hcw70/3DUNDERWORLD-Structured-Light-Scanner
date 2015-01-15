@@ -10,7 +10,7 @@
 
 #include "StdAfx.h"
 #include "Utilities.h"
-#include <conio.h>
+
 
 Utilities::Utilities(void)
 {
@@ -30,13 +30,13 @@ bool Utilities::XOR(bool val1, bool val2)
 		return 1;
 }
 
-void Utilities::normalize3d(CvScalar &vec)	
+void Utilities::normalize(cv::Vec3f &vec)	
 {
-	double mag = sqrt( vec.val[0]*vec.val[0] + vec.val[1]*vec.val[1] + vec.val[2]*vec.val[2]);
+	double mag = sqrt( vec[0]*vec[0] + vec[1]*vec[1] + vec[2]*vec[2]);
 	
-	vec.val[0] /= std::max(0.000001, mag);
-	vec.val[1] /= std::max(0.000001, mag);
-	vec.val[2] /= std::max(0.000001, mag);
+	vec[0] /= (float) std::max(0.000001, mag);
+	vec[1] /= (float) std::max(0.000001, mag);
+	vec[2] /= (float) std::max(0.000001, mag);
 	
 	return;
 }
@@ -60,43 +60,46 @@ void Utilities::pixelToImageSpace(double p[3], CvScalar fc, CvScalar cc)
 
 }
 
-void Utilities::pixelToImageSpace(cv::Point3f &p, float ccX,float ccY, float fcX, float fcY)
+cv::Point3f Utilities::pixelToImageSpace(cv::Point2f p,  VirtualCamera cam)
 {
+	cv::Point3f point;
 
-	p.x=(p.x-ccX)/fcX;
-	p.y=(p.y-ccY)/fcY;
-	p.z=1;
-
+	point.x = (p.x-cam.cc.x) / cam.fc.x;
+	point.y = (p.y-cam.cc.y) / cam.fc.y;
+	point.z = 1;
+	
+	return point;
 }
 
 
-void Utilities::undistortPoints( double xi, double yi, VirtualCamera *cam,double *xd,double *yd)
+cv::Point2f Utilities::undistortPoints( cv::Point2f p,  VirtualCamera cam)
 {
 
     double  k[5]={0,0,0,0,0}, fx, fy, ifx, ify, cx, cy;
   
     int iters = 1;
-
-	k[0]=cam->distortion->data.fl[0];
-	k[1]=cam->distortion->data.fl[1];
-	k[2]=cam->distortion->data.fl[2];
-	k[3]=cam->distortion->data.fl[3];
+	
+	k[0] = cam.distortion.at<float>(0);
+	k[1] = cam.distortion.at<float>(1);
+	k[2] = cam.distortion.at<float>(2);
+	k[3] = cam.distortion.at<float>(3);
 	k[4]=0;
 
     iters = 5;
 
-	fx = cam->fc.val[0]; 
-    fy = cam->fc.val[1]; 
+	fx = cam.fc.x; 
+    fy = cam.fc.y; 
 	
     ifx = 1./fx;
     ify = 1./fy;
-    cx = cam->cc.val[0]; 
-    cy = cam->cc.val[1]; 
+    cx = cam.cc.x; 
+    cy = cam.cc.y; 
 
 
 	double x, y, x0, y0;
-	x=xi;
-	y=yi;
+
+	x=p.x;
+	y=p.y;
 
 	x0 = x = (x - cx)*ifx;
 	y0 = y = (y - cy)*ify;
@@ -111,8 +114,7 @@ void Utilities::undistortPoints( double xi, double yi, VirtualCamera *cam,double
 		y = (y0 - deltaY)*icdist;
 	}
 	
-	*xd=(x*fx)+cx;
-	*yd=(y*fy)+cy;
+	return cv::Point2f((x*fx)+cx,(y*fy)+cy);
 }
 
 //calculate the intersection point of a ray and a plane, given the normal and a point of the plane, and a point and the vector of the ray
@@ -129,9 +131,6 @@ CvScalar Utilities::planeRayInter(CvScalar planeNormal,CvScalar planePoint, CvSc
 
 	double dotProd1 = pSub.val[0] * planeNormal.val[0] + pSub.val[1] * planeNormal.val[1] + pSub.val[2] * planeNormal.val[2];
 	double dotProd2 = rayVector.val[0] * planeNormal.val[0] + rayVector.val[1] * planeNormal.val[1] + rayVector.val[2] * planeNormal.val[2];
-
-	
-
 	
 	if(fabs(dotProd2)<0.00001)
 	{
@@ -143,8 +142,6 @@ CvScalar Utilities::planeRayInter(CvScalar planeNormal,CvScalar planePoint, CvSc
 		return point;
 	}
 
-	
-
 	l = dotProd1 / dotProd2;
 
 	point.val[0] = rayPoint.val[0] + l * rayVector.val[0]; 
@@ -154,7 +151,7 @@ CvScalar Utilities::planeRayInter(CvScalar planeNormal,CvScalar planePoint, CvSc
 	return point;
 }
 
-float Utilities::matGet2D(cv::Mat m, int x, int y)
+double Utilities::matGet2D(cv::Mat m, int x, int y)
 {
 	int type = m.type();
 
@@ -185,6 +182,82 @@ float Utilities::matGet2D(cv::Mat m, int x, int y)
 
 }
 
+double Utilities::matGet3D(cv::Mat m, int x, int y, int i)
+{
+	int type = m.type();
+
+	switch(type)
+	{
+		case CV_8U:
+		case CV_MAKETYPE(CV_8U,3):
+			return m.at<uchar>(y,x,i);
+			break;
+		case CV_8S:
+		case CV_MAKETYPE(CV_8S,3):
+			return m.at<schar>(y,x,i);
+			break;
+		case CV_16U:
+		case CV_MAKETYPE(CV_16U,3):
+			return m.at<ushort>(y,x,i);
+			break;
+		case CV_16S:
+		case CV_MAKETYPE(CV_16S,3):
+			return m.at<short>(y,x,i);
+			break;
+		case CV_32S:
+		case CV_MAKETYPE(CV_32S,3):
+			return m.at<int>(y,x,i);
+			break;
+		case CV_32F:
+		case CV_MAKETYPE(CV_32F,3):
+			return m.at<float>(y,x,i);
+			break;
+		case CV_64F:
+		case CV_MAKETYPE(CV_64F,3):
+			return m.at<double>(y,x,i);
+			break;
+	}
+
+}
+
+cv::Vec3d Utilities::matGet3D(cv::Mat m, int x, int y)
+{
+	int type = m.type();
+
+	switch(type)
+	{
+		case CV_8U:
+		case CV_MAKETYPE(CV_8U,3):
+			return m.at<cv::Vec3b>(y,x);
+			break;
+		case CV_8S:
+		case CV_MAKETYPE(CV_8S,3):
+			return m.at<cv::Vec3b>(y,x);
+			break;
+		case CV_16U:
+		case CV_MAKETYPE(CV_16U,3):
+			return m.at<cv::Vec3w>(y,x);
+			break;
+		case CV_16S:
+		case CV_MAKETYPE(CV_16S,3):
+			return m.at<cv::Vec3s>(y,x);
+			break;
+		case CV_32S:
+		case CV_MAKETYPE(CV_32S,3):
+			return m.at<cv::Vec3i>(y,x);
+			break;
+		case CV_32F:
+		case CV_MAKETYPE(CV_32F,3):
+			return m.at<cv::Vec3f>(y,x);
+			break;
+		case CV_64F:
+		case CV_MAKETYPE(CV_64F,3):
+			return m.at<cv::Vec3d>(y,x);
+			break;
+	}
+
+}
+
 void Utilities::matSet2D(cv::Mat m, int x, int y, double val)
 {
 	int type = m.type();
@@ -192,25 +265,101 @@ void Utilities::matSet2D(cv::Mat m, int x, int y, double val)
 	switch(type)
 	{
 		case CV_8U:
-			m.at<uchar>(y,x) = (uchar) val;
+			m.at<uchar>(y,x)  = (uchar) val;
 			break;
 		case CV_8S:
-			m.at<schar>(y,x) = (schar) val;
+			m.at<schar>(y,x)  = (schar) val;
 			break;
 		case CV_16U:
 			m.at<ushort>(y,x) = (ushort) val;
 			break;
 		case CV_16S:
-			m.at<short>(y,x) = (short) val;
+			m.at<short>(y,x)  = (short) val;
 			break;
 		case CV_32S:
-			m.at<int>(y,x) = (int) val;
+			m.at<int>(y,x)	  = (int) val;
 			break;
 		case CV_32F:
-			m.at<float>(y,x) = (float) val;
+			m.at<float>(y,x)  = (float) val;
 			break;
 		case CV_64F:
 			m.at<double>(y,x) = (double) val;
+			break;
+	}
+
+}
+
+void Utilities::matSet3D(cv::Mat m, int x, int y,int i, double val)
+{
+	int type = m.type();
+
+	switch(type)
+	{
+		case CV_8U:
+		case CV_MAKETYPE(CV_8U,3):
+			m.at<uchar>(y,x,i) = (uchar) val;
+			break;
+		case CV_8S:
+		case CV_MAKETYPE(CV_8S,3):
+			m.at<schar>(y,x,i) = (schar) val;
+			break;
+		case CV_16U:
+		case CV_MAKETYPE(CV_16U,3):
+			m.at<ushort>(y,x,i) = (ushort) val;
+			break;
+		case CV_16S:
+		case CV_MAKETYPE(CV_16S,3):
+			m.at<short>(y,x,i) = (short) val;
+			break;
+		case CV_32S:
+		case CV_MAKETYPE(CV_32S,3):
+			m.at<int>(y,x,i) = (int) val;
+			break;
+		case CV_32F:
+		case CV_MAKETYPE(CV_32F,3):
+			m.at<float>(y,x,i) = (float) val;
+			break;
+		case CV_64F:
+		case CV_MAKETYPE(CV_64F,3):
+			m.at<double>(y,x) = (double) val;
+			break;
+	}
+
+}
+
+void Utilities::matSet3D(cv::Mat m, int x, int y, cv::Vec3d val)
+{
+	int type = m.type();
+
+	switch(type)
+	{
+		case CV_8U:
+		case CV_MAKETYPE(CV_8U,3):
+			m.at<cv::Vec3b>(y,x) =  val;
+			break;
+		case CV_8S:
+		case CV_MAKETYPE(CV_8S,3):
+			m.at<cv::Vec3b>(y,x) =  val;
+			break;
+		case CV_16U:
+		case CV_MAKETYPE(CV_16U,3):
+			m.at<cv::Vec3w>(y,x) = val;
+			break;
+		case CV_16S:
+		case CV_MAKETYPE(CV_16S,3):
+			m.at<cv::Vec3s>(y,x) = val;
+			break;
+		case CV_32S:
+		case CV_MAKETYPE(CV_32S,3):
+			m.at<cv::Vec3i>(y,x) = val;
+			break;
+		case CV_32F:
+		case CV_MAKETYPE(CV_32F,3):
+			m.at<cv::Vec3f>(y,x) = val;
+			break;
+		case CV_64F:
+		case CV_MAKETYPE(CV_64F,3):
+			m.at<cv::Vec3d>(y,x) = val;
 			break;
 	}
 
@@ -275,5 +424,46 @@ void Utilities::exportMat(char *path, cv::Mat m)
 		}
 		out<<"\n";
 	}
+
+}
+
+void Utilities::line_lineIntersection(cv::Point3f p1, cv::Vec3f v1, cv::Point3f p2,cv::Vec3f v2,cv::Point3f &p)
+{
+	
+
+	cv::Vec3f v12;
+	v12 = p1 - p2;
+
+	float v1_dot_v1 = v1.dot(v1);
+	float v2_dot_v2 = v2.dot(v2);
+	float v1_dot_v2 = v1.dot(v2); 
+	float v12_dot_v1 = v12.dot(v1);
+	float v12_dot_v2 = v12.dot(v2);
+
+
+	float s, t, denom;
+
+	denom = v1_dot_v1 * v2_dot_v2 - v1_dot_v2 * v1_dot_v2;
+
+	s =  (v1_dot_v2/denom) * v12_dot_v2 - (v2_dot_v2/denom) * v12_dot_v1;
+	t = -(v1_dot_v2/denom) * v12_dot_v1 + (v1_dot_v1/denom) * v12_dot_v2;
+
+
+
+	p = (p1 + s*(cv::Point3f)v1 ) + (p2 + t*(cv::Point3f) v2);
+
+}
+
+int Utilities::accessMat(cv::Mat m, int x, int y, int i)
+{
+	
+	return y*m.cols*m.channels() + x*m.channels() + i;
+
+}
+
+int Utilities::accessMat(cv::Mat m, int x, int y)
+{
+	
+	return y*m.cols*m.channels() + x*m.channels();
 
 }
